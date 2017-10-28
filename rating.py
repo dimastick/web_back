@@ -2,18 +2,38 @@
 import os
 import re
 import sys
+import json
 import queries
 import getopt
 import MySQLdb
 from SelectResult import SelectResult
 
-columns = ("name_soname", "date", "year", "sex", "city", "school", "club", "competition", "comp_date",
-           "comp_location", "event_type", "result", "position", "scores", "scores_2", "scores_3",
-           "scores_4", "scores_4", "scores_total", "teacher_name")
+COLUMNS = (
+    "name_soname", "date", "year", "sex", "city", "school", "club", "competition", "comp_date",
+    "comp_location", "event_type", "result", "position", "scores", "scores_2", "scores_3",
+    "scores_4", "scores_4", "scores_total", "trainer_name_1", "trainer_name_2"
+    )
 
-col_formats = dict(name_soname=[r'^[А-Я][a-я]* [А-Я][a-я]*$', r'^[А-Я][a-я]*-[А-Я][a-я]* [А-Я][a-я]*$'],
-                   sex=[r'(^муж$|^жен$)'],
-                   date=[r'^\d{2}.\d{2}.\d{4}$', r'^$'])
+trainer_NAME_COL_FORMAT = [
+        r'^[А-Я][a-я]*(\s[А-Я]{1}\.?)?$',
+        r'^[А-Я][a-я]*\s[А-Я]{1}\.\s?[А-Я]{1}\.$',
+        r'^[А-Я][a-я]*\s[А-Я]{1}\s[А-Я]{1}$',
+        r'^(н/д|б/т)$',
+        ]
+
+COLFORMATS = dict(
+    name_soname=[
+        r'^[А-Я][a-я]* [А-Я][a-я]*$',
+        r'^[А-Я][a-я]*-[А-Я][a-я]* [А-Я][a-я]*$'
+        ],
+    sex=[r'(^муж$|^жен$)'],
+    date=[
+        r'^\d{2}.\d{2}.\d{4}$',
+        r'^$'
+        ],
+    trainer_name_1=trainer_NAME_COL_FORMAT,
+    trainer_name_2=trainer_NAME_COL_FORMAT
+    )
 
 db = MySQLdb.connect("localhost", "dimasty", "dimasty", "stat")
 dbc = db.cursor()
@@ -23,8 +43,8 @@ dbc.execute('SET CHARACTER SET utf8;')
 dbc.execute('SET character_set_connection=utf8;')
 
 
-# prepare/parse csv file with data separated by "\"
-class InputData:
+class InputData(object):
+    """prepare/parse csv file with data separated by "\" """
     def __init__(self, file_obj):
         self.fh = file_obj
         self.isCheckPassed = True
@@ -38,7 +58,7 @@ class InputData:
             record_obj.del_firstvalue().del_newline_char()
             record_obj.devide_lastcol()
             record_obj.add_year_to_date()
-            record_obj.check_col_format(col_formats)
+            record_obj.check_col_format(COLFORMATS)
             self.isCheckDone = True
             if not record_obj.isRecordValid:
                 self.isCheckPassed = False
@@ -63,7 +83,8 @@ class InputData:
             exit()
 
 
-class DataRecord:
+class DataRecord(object):
+    """Represents one Stat record"""
     def __init__(self, record):
         self.r = record
         self.isFirstColDeleted = False
@@ -81,27 +102,33 @@ class DataRecord:
         self.r[len(self.r) - 1] = self.r[len(self.r) - 1].replace("\n", "")
         return self
 
-    def _get_teachers(self):
-        teachers = [s.strip() for s in self.r[-1].split(",")]
-        return teachers
+    def _get_trainers(self):
+        trainers = [s.strip() for s in self.r[-1].split(",")]
+        return trainers
 
     def devide_lastcol(self):
-        ts = self._get_teachers()
-        if len(ts) == 3:
-            print("[WARN] 3 teachers are encountered")
-            exit()
-        elif len(ts) == 2:
+        trainers = self._get_trainers()
+        if len(trainers) == 3:
+            print("[WARN] 3 trainers are encountered")
+            sys.exit()
+        elif len(trainers) == 2:
             self.r.pop()
-            self.r.extend(ts)
-        elif len(ts) == 1:
+            if trainers[0] == '': # replacing "" with "н/д"
+                trainers[0] = 'н/д'
+            self.r.extend(trainers)
+        elif len(trainers) == 1:
             self.r.pop()
-            ts.append("")
-            self.r.extend(ts)
+            if trainers[0] == '': # replacing "" with "н/д"
+                trainers[0] = 'н/д'
+            trainers.append('н/д')
+            self.r.extend(trainers)
         else:
             self.r.pop()
-            self.r.extend(*["", ""])
+            self.r.extend(*['н/д', 'н/д'])
 
     def add_year_to_date(self):
+        """Add 01.01 if dd.mm cell is empty and concatenate it with yyyy cell
+        first column of csv file should be remove first"""
         if not self.isFirstColDeleted:
             print("First col is not delete. There might be error because of wrong indexing")
             exit()
@@ -110,17 +137,38 @@ class DataRecord:
         self.r[1] = self.r[1] + "." + self.r[2]
 
     def check_col_format(self, regexps):
-        named_cells = dict(zip(columns, self.r))
-        for key in col_formats:
-            match_obj = None
-            is_matched = False
+        """Checking record values by provided regexps from col_formats"""
+        if len(COLUMNS) != len(self.r):
+            sys.exit("[Error] Can't do correct mapping of cell names onto their "
+                     "values. Count of column titles differs from count of values")
+        named_cells = dict(zip(COLUMNS, self.r))
+        search_result = dict()
+        for key in COLFORMATS:
+            search_result[key] = dict()
             for regexp in regexps[key]:
-                match_obj = re.search(regexp, named_cells[key])
-                is_matched = False if (not is_matched and not match_obj) else True
-            if not is_matched:
+                search_obj = re.search(regexp, named_cells[key])
+                search_result[key][regexp] = search_obj.string if search_obj else search_obj
+            if not any(search_result[key].values()):
                 self.isRecordValid = False
-                print("[{0}] does not match format. Please see records with [{1}]"
-                      .format(named_cells[key], named_cells["name_soname"].strip()))
+                print("[{0}] does not match format set for {1}. Please check records with [{2}]"
+                     .format(named_cells[key], key, named_cells["name_soname"].strip()))
+        if named_cells["trainer_name_1"] == named_cells["trainer_name_2"]:
+            if named_cells["trainer_name_1"] != 'н/д':
+                self.isRecordValid = False
+                print("[WARN] the first trainer is [{0}] and the second one is [{1}]. "
+                      "Please check records with [{2}]"
+                  .format(
+                        named_cells["trainer_name_1"],
+                        named_cells["trainer_name_2"],
+                        named_cells["name_soname"].strip()
+                        )
+                      )
+        if named_cells["trainer_name_2"] != 'н/д' and named_cells["trainer_name_1"] == 'н/д':
+            self.isRecordValid = False
+            print("The second trainer [{0}] but the first one is [{1}]"
+            .format(named_cells["trainer_name_2"], named_cells["trainer_name_1"],))
+        # print(json.dumps(d, ensure_ascii=False))
+        # sys.exit()
         return self
 
 
@@ -163,12 +211,14 @@ for o, a in opts:
         try:
             dbc.execute(queries.ClearRecordsTable)
             dbc.execute(queries.ClearAthletesTable)
+            dbc.execute(queries.CLEAR_TRAINERS_TABLE)
             with open(file) as f:
                 dbc.executemany(queries.addRecordFromFile, InputData(f).checkRecordsFormat().getdata_byrow())
                 dbc.execute(queries.FillInAthletesTable)
                 dbc.execute(queries.AddAthleteIdToStatRecord)
+                dbc.execute(queries.FILL_IN_TRAINERS_TABLE)
         except MySQLdb.Error as e:
-            print("MySQL Error {0}: {1}" % (e.args[0], e.args[1]))
+            print("MySQL Error {0}: {1}".formate(args[0], e.args[1]))
         else:
             db.commit()
     elif o in ("-d",):
