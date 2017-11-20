@@ -12,30 +12,38 @@ COLUMNS = (
     "name_soname", "date", "year", "sex", "city", "school", "club", "competition", "comp_date",
     "comp_location", "event_type", "result", "position", "scores", "scores_2", "scores_3",
     "scores_4", "scores_4", "scores_total", "trainer_name_1", "trainer_name_2"
-    )
+)
 
 trainer_NAME_COL_FORMAT = [
-        r'^[А-Я][a-я]*(\s[А-Я]{1}\.?)?$',
-        r'^[А-Я][a-я]*\s[А-Я]{1}\.\s?[А-Я]{1}\.$',
-        r'^[А-Я][a-я]*\s[А-Я]{1}\s[А-Я]{1}$',
-        r'^(н/д|б/т)$',
-        ]
+    r'^[А-Я][a-я]*(\s[А-Я]{1}\.?)?$',
+    r'^[А-Я][a-я]*\s[А-Я]{1}\.\s?[А-Я]{1}\.$',
+    r'^[А-Я][a-я]*\s[А-Я]{1}\s[А-Я]{1}$',
+    r'^(н/д|б/т)$',
+]
 
 COLFORMATS = dict(
     name_soname=[
         r'^[А-Я][a-я]* [А-Я][a-я]*$',
         r'^[А-Я][a-я]*-[А-Я][a-я]* [А-Я][a-я]*$'
-        ],
+    ],
     sex=[r'(^муж$|^жен$)'],
     date=[
         r'^\d{2}.\d{2}.\d{4}$',
         r'^$'
-        ],
+    ],
     trainer_name_1=trainer_NAME_COL_FORMAT,
     trainer_name_2=trainer_NAME_COL_FORMAT
-    )
+)
 
-db = MySQLdb.connect("localhost", "dimasty", "dimasty", "stat")
+SYS_USER = os.getlogin() # get system user
+CONFIG = {
+    'user': 'dimasty' if SYS_USER == 'dimasty' else 'root',
+    'password': 'dimasty' if SYS_USER == 'dimasty' else '',
+    'host': 'localhost',
+    'database': 'stat'
+}
+
+db = MySQLdb.connect(**CONFIG)
 dbc = db.cursor()
 db.set_character_set('utf8')
 dbc.execute('SET NAMES utf8;')
@@ -45,6 +53,7 @@ dbc.execute('SET character_set_connection=utf8;')
 
 class InputData(object):
     """prepare/parse csv file with data separated by "\" """
+
     def __init__(self, file_obj):
         self.fh = file_obj
         self.isCheckPassed = True
@@ -66,8 +75,10 @@ class InputData(object):
 
     def getdata_byrow(self):
         if self.isCheckDone and self.isCheckPassed:
-            self.fh.seek(0) # After data check we need to rewind the file to start iteration again
-            generator = (rec for rec in map(lambda line: line.split("|"), self.fh))
+            # After data check we need to rewind the file to start iteration again
+            self.fh.seek(0)
+            generator = (rec for rec in map(
+                lambda line: line.split("|"), self.fh))
             next(generator)
             for r in generator:
                 record_obj = DataRecord(r)
@@ -85,6 +96,7 @@ class InputData(object):
 
 class DataRecord(object):
     """Represents one Stat record"""
+
     def __init__(self, record):
         self.r = record
         self.isFirstColDeleted = False
@@ -113,12 +125,12 @@ class DataRecord(object):
             sys.exit()
         elif len(trainers) == 2:
             self.r.pop()
-            if trainers[0] == '': # replacing "" with "н/д"
+            if trainers[0] == '':  # replacing "" with "н/д"
                 trainers[0] = 'н/д'
             self.r.extend(trainers)
         elif len(trainers) == 1:
             self.r.pop()
-            if trainers[0] == '': # replacing "" with "н/д"
+            if trainers[0] == '':  # replacing "" with "н/д"
                 trainers[0] = 'н/д'
             trainers.append('н/д')
             self.r.extend(trainers)
@@ -130,7 +142,8 @@ class DataRecord(object):
         """Add 01.01 if dd.mm cell is empty and concatenate it with yyyy cell
         first column of csv file should be remove first"""
         if not self.isFirstColDeleted:
-            print("First col is not delete. There might be error because of wrong indexing")
+            print(
+                "First col is not delete. There might be error because of wrong indexing")
             exit()
         if not self.r[1]:
             self.r[1] = "01.01"
@@ -151,22 +164,22 @@ class DataRecord(object):
             if not any(search_result[key].values()):
                 self.isRecordValid = False
                 print("[{0}] does not match format set for {1}. Please check records with [{2}]"
-                     .format(named_cells[key], key, named_cells["name_soname"].strip()))
+                      .format(named_cells[key], key, named_cells["name_soname"].strip()))
         if named_cells["trainer_name_1"] == named_cells["trainer_name_2"]:
             if named_cells["trainer_name_1"] != 'н/д':
                 self.isRecordValid = False
                 print("[WARN] the first trainer is [{0}] and the second one is [{1}]. "
                       "Please check records with [{2}]"
-                  .format(
-                        named_cells["trainer_name_1"],
-                        named_cells["trainer_name_2"],
-                        named_cells["name_soname"].strip()
-                        )
+                      .format(
+                          named_cells["trainer_name_1"],
+                          named_cells["trainer_name_2"],
+                          named_cells["name_soname"].strip()
+                      )
                       )
         if named_cells["trainer_name_2"] != 'н/д' and named_cells["trainer_name_1"] == 'н/д':
             self.isRecordValid = False
             print("The second trainer [{0}] but the first one is [{1}]"
-            .format(named_cells["trainer_name_2"], named_cells["trainer_name_1"],))
+                  .format(named_cells["trainer_name_2"], named_cells["trainer_name_1"],))
         # print(json.dumps(d, ensure_ascii=False))
         # sys.exit()
         return self
@@ -181,7 +194,7 @@ def get_duplicate_name():
     try:
         dbc.execute(queries.findPersoneDuplicate)
     except MySQLdb.Error as e:
-        print("MySQL Error {0}: {1}" % (e.args[0], e.args[1]))
+        print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
     return dbc
 
 
@@ -189,12 +202,13 @@ def get_regdata_by_name(participant):
     try:
         dbc.execute(queries.GetPersonalInfoByName, {"name": participant})
     except MySQLdb.Error as e:
-        print("MySQL Error {0}: {1}" % (e.args[0], e.args[1]))
+        print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
     return dbc
 
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "dhf:", ["help", "data-file=", "by-name="])
+    opts, args = getopt.getopt(sys.argv[1:], "dhf:", [
+                               "help", "data-file=", "by-name="])
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -213,12 +227,13 @@ for o, a in opts:
             dbc.execute(queries.ClearAthletesTable)
             dbc.execute(queries.CLEAR_TRAINERS_TABLE)
             with open(file) as f:
-                dbc.executemany(queries.addRecordFromFile, InputData(f).checkRecordsFormat().getdata_byrow())
+                dbc.executemany(queries.addRecordFromFile, InputData(
+                    f).checkRecordsFormat().getdata_byrow())
                 dbc.execute(queries.FillInAthletesTable)
                 dbc.execute(queries.AddAthleteIdToStatRecord)
                 dbc.execute(queries.FILL_IN_TRAINERS_TABLE)
         except MySQLdb.Error as e:
-            print("MySQL Error {0}: {1}".formate(args[0], e.args[1]))
+            print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
         else:
             db.commit()
     elif o in ("-d",):

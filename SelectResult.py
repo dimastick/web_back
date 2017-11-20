@@ -7,7 +7,7 @@ import os
 
 class SelectResult:
     def __init__(self, cursor_obj):
-        self.cursor = cursor_obj;
+        self.cursor = cursor_obj
         self.titles = (tuple([f_desc[0] for f_desc in self.cursor.description]))
         self.data = self.cursor.fetchall()
         self.data_toCSV = list(self.data)
