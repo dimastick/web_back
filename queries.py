@@ -20,20 +20,20 @@ FROM
         (SELECT trainer_name_1, SUM(scores_total)/2 AS scores
          FROM Stat_Records 
          WHERE trainer_name_2 <> 'н/д'
-         GROUP BY trainer_name_1, trainer_name_2
-         ORDER BY trainer_name_1, trainer_name_2)
-    UNION
+         GROUP BY trainer_name_1
+         ORDER BY trainer_name_1)
+    UNION ALL
         (SELECT trainer_name_2, SUM(scores_total)/2 AS scores
          FROM Stat_Records
          WHERE trainer_name_2 <> 'н/д'
-         GROUP BY trainer_name_1, trainer_name_2
-         ORDER BY trainer_name_1, trainer_name_2)
-    UNION 
+         GROUP BY trainer_name_1
+         ORDER BY trainer_name_1)
+    UNION ALL
         (SELECT trainer_name_1, SUM(scores_total) AS scores
          FROM Stat_Records
          WHERE trainer_name_2 = 'н/д'
-         GROUP BY trainer_name_1, trainer_name_2
-         ORDER BY trainer_name_1, trainer_name_2)
+         GROUP BY trainer_name_1
+         ORDER BY trainer_name_1)
     ) t
 GROUP BY trainer
 ORDER BY scores DESC;
