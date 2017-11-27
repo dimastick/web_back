@@ -13,7 +13,7 @@ class SelectResult:
         self.data_toCSV = list(self.data)
 
     def report_tofile(self, filename):
-        fullpath_tofile = "/home/dimasty/PycharmProjects/stat/output/" + filename
+        fullpath_tofile = "/home/" + os.getlogin() + "/PycharmProjects/stat/output/" + filename
         writer = csv.writer(open(fullpath_tofile, "w"), delimiter="|", lineterminator="\n", quoting=csv.QUOTE_MINIMAL)
         writer.writerow(self.titles)
         # Query result is returned by records. Writing each record field by field
@@ -49,7 +49,7 @@ class SelectResult:
         max_flen = self._get_maxfields_len()
         for line in self.data:
             print("|", end="")
-            m = map(lambda x, y: ("{:" + y[1].__str__() + "}").format(x.__str__()) + "  |", line, max_flen)
+            m = map(lambda x, y: (x.__str__().ljust(y[1])) + "  |", line, max_flen)
             r = reduce(lambda x, y: x + y, m)
             print(r)
 
