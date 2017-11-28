@@ -39,25 +39,28 @@ class SelectResult:
         return max_field_size
 
     def _print_dashes(self):
+        indent = 2
         max_flen = self._get_maxfields_len()
         print("+", end='')
         for f_len in max_flen:
-            print("-" * f_len[1] + "--+", end="")
+            print("".ljust(f_len[1] + indent, "-") + "+", end="")
         print()
 
     def _print_row(self):
+        indent = 2
         max_flen = self._get_maxfields_len()
         for line in self.data:
             print("|", end="")
-            m = map(lambda x, y: (x.__str__().ljust(y[1])) + "  |", line, max_flen)
+            m = map(lambda x, y: (x.__str__().ljust(y[1] + indent)) + "|", line, max_flen)
             r = reduce(lambda x, y: x + y, m)
             print(r)
 
     def _print_title(self):
+        indent = 2
         max_flen = self._get_maxfields_len()
         t = self.titles
         print("|", end="")
-        m = map(lambda x, y: ("{:" + y[1].__str__() + "}").format(x) + "  |", t, max_flen)
+        m = map(lambda x, y: (x.__str__().ljust(y[1] + indent)) + "|", t, max_flen)
         r = reduce(lambda x, y: x + y, m)
         print(r)
 
