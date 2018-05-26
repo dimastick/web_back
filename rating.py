@@ -2,11 +2,10 @@
 import os
 import re
 import sys
-import json
 import queries
 import getopt
-import MySQLdb
-from SelectResult import SelectResult
+from MySQLdb import connections
+import SelectResult
 
 COLUMNS = (
     "name_soname", "date", "year", "sex", "city", "school", "club", "competition", "comp_date",
@@ -36,6 +35,7 @@ COLFORMATS = dict(
 )
 
 SYS_USER = os.getlogin() # get system user
+print("System user is: " + SYS_USER)
 CONFIG = {
     'user': 'dimasty' if SYS_USER == 'dimasty' else 'root',
     'password': 'dimasty' if SYS_USER == 'dimasty' else '',
@@ -43,7 +43,7 @@ CONFIG = {
     'database': 'stat'
 }
 
-db = MySQLdb.connect(**CONFIG)
+db = connections.Connection(**CONFIG)
 dbc = db.cursor()
 db.set_character_set('utf8')
 dbc.execute('SET NAMES utf8;')
@@ -189,11 +189,10 @@ def usage():
     print("\nThis is the usage function\n")
     print("Usage: " + sys.argv[0] + " -f <file> or --data-file=<file>]")
 
-
 def get_duplicate_name():
     try:
-        dbc.execute(queries.findPersoneDuplicate)
-    except MySQLdb.Error as e:
+        dbc.execute(queries.FIND_PERSON_DUPLICATES)
+    except connections.Error as e:
         print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
     return dbc
 
@@ -201,7 +200,7 @@ def get_duplicate_name():
 def get_regdata_by_name(participant):
     try:
         dbc.execute(queries.GetPersonalInfoByName, {"name": participant})
-    except MySQLdb.Error as e:
+    except connections.Error as e:
         print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
     return dbc
 
@@ -232,16 +231,16 @@ for o, a in opts:
                 dbc.execute(queries.FillInAthletesTable)
                 dbc.execute(queries.AddAthleteIdToStatRecord)
                 dbc.execute(queries.FILL_IN_TRAINERS_TABLE)
-        except MySQLdb.Error as e:
+        except connections.Error as e:
             print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
         else:
             db.commit()
     elif o in ("-d",):
         q_object = get_duplicate_name()
-        SelectResult(q_object).print_qresult()
+        SelectResult.SelectResult(q_object).print_qresult()
     elif o in ("--by-name"):
         q_object = get_regdata_by_name(a)
-        result = SelectResult(q_object).print_qresult().report_tofile("duplicates.csv")
+        result = SelectResult.SelectResult(q_object).print_qresult().report_tofile("duplicates.csv")
     else:
         assert False, "unhandled option"
 db.close()

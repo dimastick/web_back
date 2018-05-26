@@ -39,13 +39,13 @@ GROUP BY trainer
 ORDER BY scores DESC;
 '''
 
-findPersoneDuplicate = ''' SELECT new.name_soname, count(new.name_soname) AS count
+FIND_PERSON_DUPLICATES = ''' SELECT new.name_soname, count(new.name_soname) AS count
         FROM (SELECT DISTINCT name_soname, date, sex, city, school, club FROM Stat_Records) as new
         GROUP BY new.name_soname
         HAVING count>1'''
 
 # subselect contains only name_soname, date and sex fields
-findPersoneDuplicateLessStrict = ''' SELECT new.name_soname, count(new.name_soname) AS count
+FIND_PERSON_DUPLICATES_LESS_STRICT = ''' SELECT new.name_soname, count(new.name_soname) AS count
         FROM (SELECT DISTINCT name_soname, date, sex FROM Stat_Records) as new
         GROUP BY new.name_soname
         HAVING count>1'''
