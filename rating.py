@@ -34,8 +34,7 @@ COLFORMATS = dict(
     trainer_name_2=trainer_NAME_COL_FORMAT
 )
 
-SYS_USER = os.getlogin() # get system user
-print("System user is: " + SYS_USER)
+SYS_USER = os.getenv("USER") # get system user
 CONFIG = {
     'user': 'dimasty' if SYS_USER == 'dimasty' else 'root',
     'password': 'dimasty' if SYS_USER == 'dimasty' else '',
