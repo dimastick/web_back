@@ -10,10 +10,10 @@ import SelectResult
 COLUMNS = (
     "name_soname", "date", "year", "sex", "city", "school", "club", "competition", "comp_date",
     "comp_location", "event_type", "result", "position", "scores", "scores_2", "scores_3",
-    "scores_4", "scores_4", "scores_total", "trainer_name_1", "trainer_name_2"
+    "scores_4", "scores_5", "scores_total", "trainer_name_1", "trainer_name_2"
 )
 
-trainer_NAME_COL_FORMAT = [
+TRAINER_NAME_COL_FORMAT = [
     r'^[А-Я][a-я]*(\s[А-Я]{1}\.?)?$',
     r'^[А-Я][a-я]*\s[А-Я]{1}\.\s?[А-Я]{1}\.$',
     r'^[А-Я][a-я]*\s[А-Я]{1}\s[А-Я]{1}$',
@@ -30,8 +30,8 @@ COLFORMATS = dict(
         r'^\d{2}.\d{2}.\d{4}$',
         r'^$'
     ],
-    trainer_name_1=trainer_NAME_COL_FORMAT,
-    trainer_name_2=trainer_NAME_COL_FORMAT
+    trainer_name_1=TRAINER_NAME_COL_FORMAT,
+    trainer_name_2=TRAINER_NAME_COL_FORMAT
 )
 
 SYS_USER = os.getenv("USER") # get system user
@@ -72,12 +72,11 @@ class InputData(object):
                 self.isCheckPassed = False
         return self
 
-    def getdata_byrow(self):
+    def get_data_per_row(self):
         if self.isCheckDone and self.isCheckPassed:
             # After data check we need to rewind the file to start iteration again
             self.fh.seek(0)
-            generator = (rec for rec in map(
-                lambda line: line.split("|"), self.fh))
+            generator = (rec for rec in map(lambda line: line.split("|"), self.fh))
             next(generator)
             for r in generator:
                 record_obj = DataRecord(r)
@@ -86,10 +85,10 @@ class InputData(object):
                 record_obj.add_year_to_date()
                 yield tuple(r)
         elif not self.isCheckPassed:
-            print("Data check was not passed")
+            print("Data validation was not passed")
             exit()
         else:
-            print("Data check was not Done")
+            print("Data was not validated")
             exit()
 
 
@@ -155,7 +154,7 @@ class DataRecord(object):
                      "values. Count of column titles differs from count of values")
         named_cells = dict(zip(COLUMNS, self.r))
         search_result = dict()
-        for key in COLFORMATS:
+        for key in regexps:
             search_result[key] = dict()
             for regexp in regexps[key]:
                 search_obj = re.search(regexp, named_cells[key])
@@ -174,7 +173,7 @@ class DataRecord(object):
                           named_cells["trainer_name_2"],
                           named_cells["name_soname"].strip()
                       )
-                      )
+                )
         if named_cells["trainer_name_2"] != 'н/д' and named_cells["trainer_name_1"] == 'н/д':
             self.isRecordValid = False
             print("The second trainer [{0}] but the first one is [{1}]"
@@ -187,6 +186,7 @@ class DataRecord(object):
 def usage():
     print("\nThis is the usage function\n")
     print("Usage: " + sys.argv[0] + " -f <file> or --data-file=<file>]")
+
 
 def get_duplicate_name():
     try:
@@ -206,7 +206,7 @@ def get_regdata_by_name(participant):
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "dhf:", [
-                               "help", "data-file=", "by-name="])
+                               "help", "schools", "data-file=", "by-name="])
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -225,8 +225,7 @@ for o, a in opts:
             dbc.execute(queries.ClearAthletesTable)
             dbc.execute(queries.CLEAR_TRAINERS_TABLE)
             with open(file) as f:
-                dbc.executemany(queries.addRecordFromFile, InputData(
-                    f).checkRecordsFormat().getdata_byrow())
+                dbc.executemany(queries.addRecordFromFile, InputData(f).checkRecordsFormat().get_data_per_row())
                 dbc.execute(queries.FillInAthletesTable)
                 dbc.execute(queries.AddAthleteIdToStatRecord)
                 dbc.execute(queries.FILL_IN_TRAINERS_TABLE)
@@ -240,6 +239,12 @@ for o, a in opts:
     elif o in ("--by-name"):
         q_object = get_regdata_by_name(a)
         result = SelectResult.SelectResult(q_object).print_qresult().report_tofile("duplicates.csv")
+    elif o in ("--schools"):
+        try:
+            dbc.execute(queries.GET_SCHOOLS)
+            SelectResult.SelectResult(dbc).print_qresult()
+        except connections.Error as e:
+            print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
     else:
         assert False, "unhandled option"
 db.close()

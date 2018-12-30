@@ -1,14 +1,12 @@
 from functools import reduce
-import itertools
 import csv
-import sys
 import os
 
 
 class SelectResult:
     def __init__(self, cursor_obj):
         self.cursor = cursor_obj
-        self.titles = (tuple([f_desc[0] for f_desc in self.cursor.description]))
+        self.titles = tuple([col_meta_data[0] for col_meta_data in self.cursor.description])
         self.data = self.cursor.fetchall()
         self.data_toCSV = list(self.data)
 

@@ -55,7 +55,7 @@ GetPersonalInfoByName = '''SELECT i_athlete, name_soname, date, sex, city, schoo
         WHERE name_soname=%(name)s
         GROUP BY i_athlete, name_soname, date, sex, city, school, club, trainer_name_1, trainer_name_2'''
 
-GetSchools = '''SELECT DISTINCT school FROM Stat_Records'''
+GET_SCHOOLS = '''SELECT DISTINCT school FROM Stat_Records'''
 
 GetCities = '''SELECT DISTINCT city FROM Stat_Records'''
 
