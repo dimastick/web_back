@@ -10,7 +10,29 @@ addRecordFromFile = '''
     INSERT INTO Stat_Records(name_soname, date, year, sex, city, school, club, competition, comp_date,
            comp_location, event_type, result, position, scores, scores_2, scores_3, scores_4, scores_5, scores_total,
            trainer_name_1, trainer_name_2)
-    VALUES (%s, STR_TO_DATE(%s, "%%d.%%m.%%Y"), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'''
+    VALUES (
+        %(name_soname)s,
+        STR_TO_DATE(%(date)s, "%%d.%%m.%%Y"),
+        %(year)s,
+        %(sex)s,
+        %(city)s,
+        %(school)s,
+        %(club)s,
+        %(competition)s,
+        %(comp_date)s,
+        %(comp_location)s,
+        %(event_type)s,
+        %(result)s,
+        %(position)s,
+        %(scores)s,
+        %(scores_2)s,
+        %(scores_3)s,
+        %(scores_4)s,
+        %(scores_5)s,
+        %(scores_total)s,
+        %(trainer_name_1)s,
+        %(trainer_name_2)s
+        )'''
 
 FILL_IN_TRAINERS_TABLE = '''
 INSERT INTO Trainers (name, scores) 
