@@ -96,6 +96,9 @@ def check_col_format(regexps, dict_record):
 
 
 if __name__ == "__main__":
-    gen_dicts = gen_records_from_file()
-
-    check_col_format(COL_FORMATS, fixup_stat_record(next(gen_dicts)))
+    # gen_dicts = gen_records_from_file()
+    # check_col_format(COL_FORMATS, fixup_stat_record(next(gen_dicts)))
+    try:
+        {}['foo']
+    except KeyError as e:
+        raise RuntimeError('Oooops') from e
