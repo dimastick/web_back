@@ -1,28 +1,35 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.4
+
+from os.path import *
 import os
 import sys
 import queries
 import getopt
-from MySQLdb import connections
+from MySQLdb.connections import Connection, cursors
 from dataset import InputDataSet
 import SelectResult
+import configparser
 
 
-SYS_USER = os.getenv("USER") # get system user
+conf_dir = dirname(dirname(abspath(__file__)))
+config = configparser.ConfigParser()
+config.read(join(conf_dir, 'app.conf'), encoding='utf-8')
+
+
+SYS_USER = os.getenv("USER")  # get system user
 CONFIG = {
-    'user': 'dimasty' if SYS_USER == 'dimasty' else 'root',
-    'password': 'dimasty' if SYS_USER == 'dimasty' else '',
-    'host': 'localhost',
-    'database': 'stat'
+    'user': config['DB']['user'] if SYS_USER == 'dimasty' else 'root',
+    'password': config['DB']['user'] if SYS_USER == 'dimasty' else '',
+    'host': config['DB']['host'],
+    'database': config['DB']['database']
 }
-
-db = connections.Connection(**CONFIG)
+db = Connection(**CONFIG)
 dbc = db.cursor()
 db.set_character_set('utf8')
 dbc.execute('SET NAMES utf8;')
 dbc.execute('SET CHARACTER SET utf8;')
 dbc.execute('SET character_set_connection=utf8;')
-''.up
+
 
 def usage():
     print("\nThis is the usage function\n")
@@ -32,7 +39,7 @@ def usage():
 def get_duplicate_name():
     try:
         dbc.execute(queries.FIND_PERSON_DUPLICATES)
-    except connections.Error as e:
+    except Connection.Error as e:
         print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
     return dbc
 
@@ -40,7 +47,7 @@ def get_duplicate_name():
 def get_regdata_by_name(participant):
     try:
         dbc.execute(queries.GetPersonalInfoByName, {"name": participant})
-    except connections.Error as e:
+    except Connection.Error as e:
         print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
     return dbc
 
@@ -66,13 +73,13 @@ for o, a in opts:
             dbc.execute(queries.ClearAthletesTable)
             dbc.execute(queries.CLEAR_TRAINERS_TABLE)
             with open(file, newline='') as f:
-                for dict_params in InputDataSet(f).check_rec_format().get_data_per_row():
-                    dbc.execute(queries.addRecordFromFile, dict_params)
+                dbc.executemany(queries.addRecordFromFile, InputDataSet(f).check_rec_format().get_data_per_row())
                 dbc.execute(queries.FillInAthletesTable)
                 dbc.execute(queries.AddAthleteIdToStatRecord)
                 dbc.execute(queries.FILL_IN_TRAINERS_TABLE)
-        except connections.Error as e:
-            print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
+        except Connection.Error as e:
+            print(dbc._last_executed)
+            # print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
         else:
             db.commit()
     elif o in ("-d",):
@@ -85,7 +92,7 @@ for o, a in opts:
         try:
             dbc.execute(queries.GET_SCHOOLS)
             SelectResult.SelectResult(dbc).print_qresult()
-        except connections.Error as e:
+        except Connection.Error as e:
             print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
     else:
         assert False, "unhandled option"

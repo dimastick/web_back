@@ -30,10 +30,9 @@ COL_FORMATS = dict(
     trainer_name_2=TRAINER_NAME_COL_FORMAT
 )
 
+
 class InputDataSet:
     """prepare/parse csv file with data separated by "|" """
-
-
     def __init__(self, file_obj):
         self.fh = file_obj
         self.isCheckPassed = True
@@ -58,6 +57,7 @@ class InputDataSet:
         if has_header:
             next(reader, None)                               # to exclude the first row (headers)
         for rec in reader:
+            # print(rec)
             yield rec
 
     def check_rec_format(self):
