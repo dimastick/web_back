@@ -2,6 +2,7 @@
 
 import re
 import sys
+from datetime import datetime
 
 
 class StatRecord:
@@ -20,19 +21,22 @@ class StatRecord:
             Add 01.01 if dd.mm (date) value is empty and concatenate it with year field;
             @return: fixed (modified) dict
         """
-        del self.get_record()['id'] # delete the first column field
+        del self.get_record()['id']  # delete the first column field
 
         trainers = [s.strip() for s in self.r['trainer_name_1'].split(",")]
         if len(trainers) == 3:
             print("[WARN] 3 trainers are encountered for {}".format(self.r['name_soname']))
-            sys.exit()
+            # sys.exit()
         elif len(trainers) == 2:
             if trainers[0] == trainers[1]:
-                print("[WARN] two identical trainer names are encountered in one record")
-                sys.exit()
+                print(
+                    "[WARN] two identical trainer names are encountered in one record {}"
+                        .format(self.r['name_soname'])
+                )
+                # sys.exit()
             if not trainers[0] or not trainers[1]:
                 print("[WARN] one of two trainer names is empty for {}".format(self.r['name_soname']))
-                sys.exit()
+                # sys.exit()
             self.r['trainer_name_1'], self.r['trainer_name_2'] = trainers
         elif len(trainers) == 1:
             trainers.append('н/д')

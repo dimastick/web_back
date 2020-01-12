@@ -2,6 +2,7 @@
 
 import csv
 from statrecord import StatRecord
+import json
 
 FIELD_NAMES = (
         "id", "name_soname", "date", "year", "sex", "city", "school", "club", "competition", "comp_date",
@@ -13,7 +14,7 @@ TRAINER_NAME_COL_FORMAT = [
     r'^[А-Я][a-я]*(\s[А-Я]{1}\.?)?$',
     r'^[А-Я][a-я]*\s[А-Я]{1}\.\s?[А-Я]{1}\.$',
     r'^[А-Я][a-я]*\s[А-Я]{1}\s[А-Я]{1}$',
-    r'^(н/д|б/т)$',
+    r'^(н/д|б/т|самостоятельно)$',
 ]
 
 COL_FORMATS = dict(
@@ -23,7 +24,7 @@ COL_FORMATS = dict(
     ],
     sex=[r'(^муж$|^жен$)'],
     date=[
-        r'^\d{2}.\d{2}.\d{4}$',
+        r'^\d{1,2}.\d{1,2}.\d{4}$',
         r'^$'
     ],
     trainer_name_1=TRAINER_NAME_COL_FORMAT,
@@ -83,4 +84,6 @@ class InputDataSet:
             for r in gen:
                 record_obj = StatRecord(r)
                 record_obj.fix_it_up()
+                # prettify stat record entity
+                # print(json.dumps(record_obj.get_record(), indent=4, ensure_ascii=False))
                 yield record_obj.get_record()

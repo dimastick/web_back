@@ -13,6 +13,7 @@ addRecordFromFile = '''
     VALUES (
         %(name_soname)s,
         STR_TO_DATE(%(date)s, "%%d.%%m.%%Y"),
+        # %(date)s,
         %(year)s,
         %(sex)s,
         %(city)s,

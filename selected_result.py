@@ -63,9 +63,10 @@ class SelectResult:
         print(r)
 
     def print_qresult(self):
-        self._print_dashes()
-        self._print_title()
-        self._print_dashes()
-        self._print_row()
-        self._print_dashes()
+        if self.data:  # because of empty data set. No records were found
+            self._print_dashes()
+            self._print_title()
+            self._print_dashes()
+            self._print_row()
+            self._print_dashes()
         return self

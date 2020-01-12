@@ -7,7 +7,7 @@ import queries
 import getopt
 from MySQLdb.connections import Connection, cursors
 from dataset import InputDataSet
-import SelectResult
+from selected_result import SelectResult
 import configparser
 
 
@@ -78,20 +78,20 @@ for o, a in opts:
                 dbc.execute(queries.AddAthleteIdToStatRecord)
                 dbc.execute(queries.FILL_IN_TRAINERS_TABLE)
         except Connection.Error as e:
-            print(dbc._last_executed)
-            # print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
+            # print(dbc._last_executed)
+            print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
         else:
             db.commit()
     elif o in ("-d",):
         q_object = get_duplicate_name()
-        SelectResult.SelectResult(q_object).print_qresult()
+        SelectResult(q_object).print_qresult()
     elif o in ("--by-name"):
         q_object = get_regdata_by_name(a)
-        result = SelectResult.SelectResult(q_object).print_qresult().report_tofile("duplicates.csv")
+        result = SelectResult(q_object).print_qresult().report_tofile("duplicates.csv")
     elif o in ("--schools"):
         try:
             dbc.execute(queries.GET_SCHOOLS)
-            SelectResult.SelectResult(dbc).print_qresult()
+            SelectResult(dbc).print_qresult()
         except Connection.Error as e:
             print("MySQL Error {0}: {1}".format(e.args[0], e.args[1]))
     else:
